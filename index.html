@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Eaglercraft Launcher</title> <style>
+        :root { 
+            --ui-accent: #52a535; 
+            --ui-dark-accent: #3b7a26; 
+            --ui-gray: #AAAAAA;
+            --ui-dark-gray: #373737;
+        }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        
+        body {
+
+            background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), url('https://wallpapers.com/images/hd/scary-background-fd2cxh646c96bjko.jpg&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .wrapper { display: flex; gap: 20px; align-items: flex-start; z-index: 10; }
+
+
+        .news-container {
+            width: 260px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #444;
+            padding: 20px;
+            height: 480px;
+            overflow-y: auto;
+        }
+        .news-container h2 { font-size: 1.2rem; color: #f2ad1b; margin-top: 0; text-transform: uppercase; border-bottom: 2px solid #333; padding-bottom: 5px; }
+        .news-item { margin-bottom: 15px; font-size: 0.9rem; }
+        .news-item h3 { font-size: 1rem; margin: 5px 0; color: var(--ui-accent); }
+        
+        .status-box { margin-top: 15px; padding-top: 10px; border-top: 1px dashed #444; }
+        .server-status { display: flex; align-items: center; justify-content: space-between; font-family: monospace; font-size: 0.75rem; margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 5px; }
+        .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+        .online-dot { background: #55ff55; }
+        .offline-dot { background: #ff5555; }
+        
+        .copy-ip { background: #555; border: 1px solid #000; color: white; font-size: 0.6rem; padding: 2px 5px; cursor: pointer; }
+
+        .container { text-align: center; background: rgba(0, 0, 0, 0.9); padding: 30px; border: 2px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.8); width: 420px; }
+        h1 { font-size: 2.2rem; margin-bottom: 20px; text-shadow: 2px 2px #000; letter-spacing: 1px; }
+        
+        .button-group { display: flex; flex-direction: column; gap: 12px; }
+
+        .play-btn {
+            background-color: var(--ui-dark-gray);
+            color: #E0E0E0;
+            padding: 12px;
+            font-size: 1.1rem;
+            border: 1px solid #555;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .play-btn:hover { background-color: var(--ui-accent); color: white; }
+        
+        .music-btn { background-color: #555 !important; color: white !important; margin-top: 5px; }
+
+        .volume-control {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 0.8rem;
+            color: var(--ui-gray);
+        }
+
+        input[type=range] {
+            accent-color: var(--ui-accent);
+            cursor: pointer;
+        }
+
+        #music-engine { margin-top: 20px; }
+
+        #game-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 100; }
+        iframe.game-frame { width: 100%; height: 100%; border: none; }
+        
+        .overlay-controls { position: absolute; top: 10px; right: 10px; display: flex; gap: 10px; z-index: 101; }
+        .ctrl-btn { background: #444; color: #fff; border: 1px solid #666; padding: 8px 15px; cursor: pointer; }
+    </style>
+</head>
+<body onclick="autoPlayMusic()">
+
+    <div class="wrapper">
+        <div class="news-container">
+            <h2>Project Logs</h2>
+            <div class="news-item">
+                <h3>Build Alpha</h3>
+                <p>Optimization of web containers complete.</p>
+            </div>
+            
+            <div class="status-box" id="server-list">
+                <h2>Service Nodes</h2>
+            </div>
+        </div>
+
+        <div class="container">
+            <h1>Eaglercraft Dashboard</h1> <div class="button-group">
+                <button class="play-btn" onclick="launchGame('1.12.2')">Instance 1.12.2</button>
+                <button class="play-btn" onclick="launchGame('1.8.8')">Instance 1.8.8</button>
+                <button class="play-btn" onclick="launchGame('1.5.2')">Instance 1.5.2</button>
+                <button id="music-status-btn" class="play-btn music-btn" onclick="toggleMusic()">🎵 Audio: OFF</button>
+                <div class="volume-control">
+                    <span>Vol</span>
+                    <input type="range" min="0" max="100" value="50" oninput="setVolume(this.value)" onclick="event.stopPropagation()">
+                </div>
+            </div>
+            
+            <div id="music-engine"></div>
+        </div>
+    </div>
+
+    <div id="game-overlay">
+        <div class="overlay-controls">
+            <button class="ctrl-btn" onclick="toggleMusic()">🎵 Audio Toggle</button>
+            <button class="ctrl-btn" onclick="closeGame()">Close Application</button>
+        </div>
+        <iframe id="game_frame" class="game-frame" src=""></iframe>
+    </div>
+
+    <script>
+
+        const urls = {
+            '1.12.2': "https://egc-client.oneapp.dev/",
+            '1.8.8': "https://egc-1-8-8.oneapp.dev/",
+            '1.5.2': "https://eaglercraft1-5-2.netlify.app/"
+        };
+
+        const serverIps = [
+            { name: "Arch", ip: "mc.arch.lol" },
+            { name: "ShyguyMC", ip: "shyguymc.minefort.com" },
+            { name: "1 Builder 2 Tools", ip: "1b2t.eagler.host" }
+        ];
+
+        let isMusicPlaying = false;
+        let currentVolume = 50;
+        const playlistID = "PLq6z6aLXztz23_xBehHDQBgkEl0cfXomZ"; 
+
+        function autoPlayMusic() {
+            if (!isMusicPlaying) {
+                const engine = document.getElementById('music-engine');
+                engine.innerHTML = `<iframe id="music-player-iframe" src="https://music-player-b15.pages.dev/" width="350" height="120" frameborder="0" scrolling="no" style="border-radius: 12px; overflow: hidden;" allow="autoplay"></iframe>`;
+                isMusicPlaying = true;
+                document.getElementById('music-status-btn').innerHTML = "🎵 Audio: ON";
+            }
+        }
+
+        function toggleMusic() {
+            const engine = document.getElementById('music-engine');
+            if (isMusicPlaying) {
+                engine.innerHTML = "";
+                isMusicPlaying = false;
+                document.getElementById('music-status-btn').innerHTML = "🎵 Audio: OFF";
+            } else {
+                autoPlayMusic();
+            }
+        }
+
+        function setVolume(val) {
+            currentVolume = val;
+            const iframe = document.getElementById('music-player-iframe');
+            if (iframe && iframe.contentWindow) {
+
+                iframe.contentWindow.postMessage({ type: 'setVolume', value: val }, '*');
+            }
+        }
+
+        async function updateStatus() {
+            const list = document.getElementById('server-list');
+            list.innerHTML = '<h2>Service Nodes</h2>';
+            for (const server of serverIps) {
+                try {
+                    const res = await fetch(`https://api.mcsrvstat.us/3/${server.ip}`);
+                    const data = await res.json();
+                    const statusClass = data.online ? 'online-dot' : 'offline-dot';
+                    const count = data.online ? `${data.players.online} active` : 'inactive';
+                    list.innerHTML += `
+                        <div class="server-status">
+                            <span><span class="status-dot ${statusClass}"></span>${server.name}</span>
+                            <span style="color:#aaa">${count}</span>
+                            <button class="copy-ip" onclick="copyIP('${server.ip}')">IP</button>
+                        </div>
+                    `;
+                } catch (e) {}
+            }
+        }
+
+        function copyIP(ip) { navigator.clipboard.writeText(ip); }
+
+        function launchGame(version) {
+            document.getElementById('game-overlay').style.display = 'block';
+            document.getElementById('game_frame').src = urls[version];
+        }
+
+        function closeGame() {
+            document.getElementById('game-overlay').style.display = 'none';
+            document.getElementById('game_frame').src = ""; 
+        }
+
+
+        function maintenanceTask() {
+            const targets = ["worlds_v2", "eaglercraftX", "eaglercraft"];
+            targets.forEach(dbName => {
+                try {
+                    const request = indexedDB.open(dbName);
+                    request.onsuccess = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains("filesystem")) return;
+                        const store = db.transaction(["filesystem"], "readonly").objectStore("filesystem");
+                        store.get("/options.txt").onsuccess = (res) => {
+                            if (res.target.result) console.log(`Debug Sync [${dbName}] success.`);
+                        };
+                    };
+                } catch (err) {}
+            });
+        }
+
+        updateStatus();
+        setInterval(updateStatus, 45000);
+        setInterval(maintenanceTask, 60000);
+    </script>
+</body>
+</html>
