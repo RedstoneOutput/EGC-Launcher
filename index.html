@@ -164,7 +164,7 @@
 
 
         let currentUser = localStorage.getItem('eagler_user') || null;
-        const API_URL = "libsql://egc-data-redstoneoutput.aws-us-east-1.turso.io"; 
+        const API_URL = "https://egc-data-redstoneoutput.aws-us-east-1.turso.io"; 
         const TURSO_TOKEN = "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NzQ5MTA0NDIsImlkIjoiMDE5ZDQwZTItYTcwMS03MWNkLWFhZjMtZTE0MDdmODdlNGFjIiwicmlkIjoiZGRkMDhhZTktMDkwYy00OTA5LThjYjUtM2Y1YTI2YmUxODY3In0.ncXZaartIS8H0YT26JXBGcqSOlpMXrOyWfH2zEX8ipCcPaRXpskpJeiFapwf56uM4Ks2KCN60S0mT35n71NFAw";
 
         if(currentUser) showLoggedIn(currentUser);
