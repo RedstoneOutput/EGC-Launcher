@@ -181,13 +181,17 @@
             
 
             try {
-                const res = await fetch(`${API_URL}/auth`, {
+                const res = await fetch(`${API_URL}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${TURSO_TOKEN}`
                     },
-                    body: JSON.stringify({ user, pass, type })
+                    body: JSON.stringify({ 
+                        statements: [
+                            { q: "INSERT INTO users (username, password) VALUES (?, ?)", params: [user, pass] }
+                        ] 
+                    })
                 });
                 if(res.ok) {
                     localStorage.setItem('eagler_user', user);
@@ -318,17 +322,19 @@
 
         async function syncToTurso(version, key, val) {
 
-            fetch(`${API_URL}/sync`, {
+            fetch(`${API_URL}`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${TURSO_TOKEN}`
                 },
                 body: JSON.stringify({
-                    user: currentUser,
-                    version: version,
-                    key: key,
-                    data: val
+                    statements: [
+                        { 
+                            q: "INSERT INTO sync (user, version, key, data) VALUES (?, ?, ?, ?)", 
+                            params: [currentUser, version, key, JSON.stringify(val)] 
+                        }
+                    ]
                 })
             }).catch(e => console.log("Sync queued/failed."));
         }
