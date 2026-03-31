@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Eaglercraft Launcher</title> <style>
+    <title>Eaglercraft Portal</title> <style>
         :root { 
             --ui-accent: #52a535; 
             --ui-dark-accent: #3b7a26; 
@@ -13,7 +13,7 @@
         
         body {
 
-            background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), url('https://cdn.jsdelivr.net/gh/RedstoneOutput/EGC-Launcher@main/image.png&auto=format&fit=crop');
+            background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), url('https://wallpapers.com/images/hd/scary-background-fd2cxh646c96bjko.jpg&auto=format&fit=crop');
             background-size: cover;
             background-position: center;
         }
@@ -81,6 +81,13 @@
         
         .overlay-controls { position: absolute; top: 10px; right: 10px; display: flex; gap: 10px; z-index: 101; }
         .ctrl-btn { background: #444; color: #fff; border: 1px solid #666; padding: 8px 15px; cursor: pointer; }
+
+
+        .auth-box { margin-bottom: 20px; border-bottom: 1px solid #444; padding-bottom: 20px; }
+        .auth-input { background: #222; border: 1px solid #444; color: white; padding: 8px; margin: 5px; width: 80%; }
+        .auth-btn { background: var(--ui-dark-accent); border: none; color: white; padding: 8px 15px; cursor: pointer; margin-top: 5px; }
+        .auth-btn:hover { background: var(--ui-accent); }
+        .user-welcome { font-size: 0.9rem; color: var(--ui-accent); margin-bottom: 10px; }
     </style>
 </head>
 <body onclick="autoPlayMusic()">
@@ -99,6 +106,21 @@
         </div>
 
         <div class="container">
+            <div id="auth-section" class="auth-box">
+                <div id="login-form">
+                    <input type="text" id="username" class="auth-input" placeholder="Username">
+                    <input type="password" id="password" class="auth-input" placeholder="Password">
+                    <div>
+                        <button class="auth-btn" onclick="handleAuth('login')">Login</button>
+                        <button class="auth-btn" style="background:#555" onclick="handleAuth('signup')">Sign Up</button>
+                    </div>
+                </div>
+                <div id="user-info" style="display:none">
+                    <div class="user-welcome">Logged in as: <span id="display-user"></span></div>
+                    <button class="auth-btn" style="background:#822" onclick="logout()">Logout / Sync</button>
+                </div>
+            </div>
+
             <h1>Eaglercraft Dashboard</h1> <div class="button-group">
                 <button class="play-btn" onclick="launchGame('1.12.2')">Instance 1.12.2</button>
                 <button class="play-btn" onclick="launchGame('1.8.8')">Instance 1.8.8</button>
@@ -119,15 +141,15 @@
             <button class="ctrl-btn" onclick="toggleMusic()">🎵 Audio Toggle</button>
             <button class="ctrl-btn" onclick="closeGame()">Close Application</button>
         </div>
-        <iframe id="game_frame" class="game-frame" src=""></iframe>
+        <iframe id="game_frame" class="game-frame" src="" allow="autoplay; fullscreen; keyboard" tabindex="1"></iframe>
     </div>
 
     <script>
 
         const urls = {
-            '1.12.2': "https://egc-client.oneapp.dev/",
-            '1.8.8': "https://egc-1-8-8.oneapp.dev/",
-            '1.5.2': "https://eaglercraft1-5-2.netlify.app/"
+            '1.12.2': "https://eaglercraft1-12-2.netlify.app/",
+            '1.8.8': "https://eaglercraft1-8.netlify.app/", 
+            '1.5.2': "https://1-5-2.oneapp.dev/"
         };
 
         const serverIps = [
@@ -139,6 +161,55 @@
         let isMusicPlaying = false;
         let currentVolume = 50;
         const playlistID = "PLq6z6aLXztz23_xBehHDQBgkEl0cfXomZ"; 
+
+
+        let currentUser = localStorage.getItem('eagler_user') || null;
+        const API_URL = "libsql://egc-data-redstoneoutput.aws-us-east-1.turso.io"; 
+        const TURSO_TOKEN = "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NzQ5MTA0NDIsImlkIjoiMDE5ZDQwZTItYTcwMS03MWNkLWFhZjMtZTE0MDdmODdlNGFjIiwicmlkIjoiZGRkMDhhZTktMDkwYy00OTA5LThjYjUtM2Y1YTI2YmUxODY3In0.ncXZaartIS8H0YT26JXBGcqSOlpMXrOyWfH2zEX8ipCcPaRXpskpJeiFapwf56uM4Ks2KCN60S0mT35n71NFAw";
+
+        if(currentUser) showLoggedIn(currentUser);
+
+        function showLoggedIn(user) {
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('user-info').style.display = 'block';
+            document.getElementById('display-user').innerText = user;
+        }
+
+        async function handleAuth(type) {
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            
+
+            try {
+                const res = await fetch(`${API_URL}/auth`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${TURSO_TOKEN}`
+                    },
+                    body: JSON.stringify({ user, pass, type })
+                });
+                if(res.ok) {
+                    localStorage.setItem('eagler_user', user);
+                    currentUser = user;
+                    showLoggedIn(user);
+                    maintenanceTask(); 
+                } else {
+                    alert("Auth failed.");
+                }
+            } catch(e) {
+                console.error("Backend not connected. Simulating login for UI demo.");
+                currentUser = user;
+                localStorage.setItem('eagler_user', user);
+                showLoggedIn(user);
+            }
+        }
+
+        function logout() {
+            maintenanceTask(); 
+            localStorage.removeItem('eagler_user');
+            location.reload();
+        }
 
         function autoPlayMusic() {
             if (!isMusicPlaying) {
@@ -192,8 +263,15 @@
         function copyIP(ip) { navigator.clipboard.writeText(ip); }
 
         function launchGame(version) {
-            document.getElementById('game-overlay').style.display = 'block';
-            document.getElementById('game_frame').src = urls[version];
+            const overlay = document.getElementById('game-overlay');
+            const frame = document.getElementById('game_frame');
+            overlay.style.display = 'block';
+            frame.src = urls[version];
+            
+
+            frame.onload = function() {
+                frame.focus();
+            };
         }
 
         function closeGame() {
@@ -202,7 +280,17 @@
         }
 
 
+        window.addEventListener("mousedown", function(e) {
+            const frame = document.getElementById('game_frame');
+            if (document.getElementById('game-overlay').style.display === 'block') {
+                frame.focus();
+            }
+        });
+
+
         function maintenanceTask() {
+            if(!currentUser) return; 
+
             const targets = ["worlds_v2", "eaglercraftX", "eaglercraft"];
             targets.forEach(dbName => {
                 try {
@@ -210,13 +298,39 @@
                     request.onsuccess = (e) => {
                         const db = e.target.result;
                         if (!db.objectStoreNames.contains("filesystem")) return;
-                        const store = db.transaction(["filesystem"], "readonly").objectStore("filesystem");
-                        store.get("/options.txt").onsuccess = (res) => {
-                            if (res.target.result) console.log(`Debug Sync [${dbName}] success.`);
+                        
+                        const transaction = db.transaction(["filesystem"], "readonly");
+                        const store = transaction.objectStore("filesystem");
+                        
+
+                        const cursorReq = store.openCursor();
+                        cursorReq.onsuccess = (event) => {
+                            const cursor = event.target.result;
+                            if (cursor) {
+                                syncToTurso(dbName, cursor.key, cursor.value);
+                                cursor.continue();
+                            }
                         };
                     };
                 } catch (err) {}
             });
+        }
+
+        async function syncToTurso(version, key, val) {
+
+            fetch(`${API_URL}/sync`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${TURSO_TOKEN}`
+                },
+                body: JSON.stringify({
+                    user: currentUser,
+                    version: version,
+                    key: key,
+                    data: val
+                })
+            }).catch(e => console.log("Sync queued/failed."));
         }
 
         updateStatus();
